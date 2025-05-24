@@ -6,34 +6,47 @@ from organisms.animals.human import Human
 from organisms.organism_factory import get_class_by_name
 from utils.point import Point
 
-class View(tk.Canvas):
+class View(tk.Frame):
     def __init__(self, root, world, info_label, max_turns):
-        width = world.get_width() * 50
-        height = world.get_height() * 50
-        super().__init__(root, width=width, height=height, bg="white", highlightthickness=0)
-
-        self.world = world
+        super().__init__(root)
         self.cell_size = 50
+        self.world = world
         self.info_label = info_label
         self.max_turns = max_turns
         self.image_cache = {}
 
-        # Wyciągnij log_area i przypisz do siebie
         self.log_area = root.nametowidget('log_area') if 'log_area' in root.children else None
 
-        self.bind("<Button-1>", self._on_click)
-        self.focus_set()
+        canvas_width = world.get_width() * self.cell_size
+        canvas_height = world.get_height() * self.cell_size
+
+        # Canvas + scrollbary
+        self.canvas = tk.Canvas(self, width=min(canvas_width, 700), height=min(canvas_height, 700),
+                               bg="white", highlightthickness=0, scrollregion=(0,0,canvas_width,canvas_height))
+        self.hbar = tk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.canvas.xview)
+        self.vbar = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.canvas.configure(xscrollcommand=self.hbar.set, yscrollcommand=self.vbar.set)
+
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.vbar.grid(row=0, column=1, sticky="ns")
+        self.hbar.grid(row=1, column=0, sticky="ew")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.canvas.bind("<Button-1>", self._on_click)
+        self.canvas.focus_set()
 
         self._draw_all()
         self._update_info()
 
     def _draw_all(self):
-        self.delete("all")
+        self.canvas.delete("all")
         for x in range(self.world.get_width()):
             for y in range(self.world.get_height()):
-                self.create_rectangle(x * self.cell_size, y * self.cell_size,
-                                      (x + 1) * self.cell_size, (y + 1) * self.cell_size,
-                                      outline="gray")
+                self.canvas.create_rectangle(
+                    x * self.cell_size, y * self.cell_size,
+                    (x + 1) * self.cell_size, (y + 1) * self.cell_size,
+                    outline="gray")
 
         plants = []
         animals = []
@@ -52,23 +65,30 @@ class View(tk.Canvas):
                     resized = img.resize((self.cell_size, self.cell_size))
                     photo = ImageTk.PhotoImage(resized)
                     self.image_cache[(pos.get_x(), pos.get_y())] = photo
-                    self.create_image(pos.get_x() * self.cell_size,
-                                      pos.get_y() * self.cell_size,
-                                      image=photo,
-                                      anchor=tk.NW)
+                    self.canvas.create_image(
+                        pos.get_x() * self.cell_size,
+                        pos.get_y() * self.cell_size,
+                        image=photo,
+                        anchor=tk.NW)
+        # Zawsze popraw region do scrollowania
+        self.canvas.config(scrollregion=self.canvas.bbox("all"))
 
     def _on_click(self, event):
-        col = event.x // self.cell_size
-        row = event.y // self.cell_size
+        x = int(self.canvas.canvasx(event.x))
+        y = int(self.canvas.canvasy(event.y))
+        col = x // self.cell_size
+        row = y // self.cell_size
         point = Point(col, row)
 
         if not self.world.is_inside_board(point):
             self._add_log("Clicked outside the board.", "info")
+            self._refresh_logs()
             return
 
         if self.world.is_occupied(point):
             org = self.world.find_organism(point)
             self._add_log(f"{org.name()} at {point} | age: {org.get_age()} | str: {org.get_strength()}", "info")
+            self._refresh_logs()
             return
 
         self._popup_add(point)
@@ -90,6 +110,7 @@ class View(tk.Canvas):
         if name == "Human":
             if any(isinstance(o, Human) for o in self.world.get_all_organisms()):
                 self._add_log("Only one Human allowed!", "warn")
+                self._refresh_logs()
                 return
 
         klass = get_class_by_name(name)
@@ -100,6 +121,7 @@ class View(tk.Canvas):
             self.image_cache.clear()
             self._draw_all()
             self._update_info()
+            self._refresh_logs()
 
     def on_key(self, event):
         key_map = {
@@ -146,17 +168,27 @@ class View(tk.Canvas):
         self.info_label.config(text="Welcome to Virtual World!\n" + info)
 
     def _add_log(self, text, typ="info"):
-        # typ może być info, warn, special, move, dead, spread, default
         if self.log_area is None:
             return
+        self.world.add_log(text)
         self.log_area.config(state=tk.NORMAL)
         tag = self._color_tag_for_log(text, typ)
         self.log_area.insert(tk.END, text + "\n", tag)
         self.log_area.see(tk.END)
         self.log_area.config(state=tk.DISABLED)
 
+    def _refresh_logs(self):
+        if self.log_area is None:
+            return
+        self.log_area.config(state=tk.NORMAL)
+        self.log_area.delete("1.0", tk.END)
+        logs = self.world.flush_logs()
+        for line in logs:
+            self.log_area.insert(tk.END, line + "\n")
+        self.log_area.see(tk.END)
+        self.log_area.config(state=tk.DISABLED)
+
     def _color_tag_for_log(self, text, typ="info"):
-        # typy: dead, spread, special, move, info, warn, default
         lower = text.lower()
         if "killed" in lower or "died" in lower or "burned" in lower or "eaten" in lower:
             tag = "dead"
