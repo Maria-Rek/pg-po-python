@@ -68,6 +68,7 @@ class World:
         return 0 <= point.get_x() < self._width and 0 <= point.get_y() < self._height
 
     def get_adjacent_positions(self, center: Point) -> list[Point]:
+        # OŚMIOSĄSIEDZTWO – wszystkie kierunki z Direction poza NONE!
         result = []
         for d in Direction:
             if d == Direction.NONE:
@@ -93,6 +94,7 @@ class World:
         closest = None
         for org in self._organisms:
             if org.name() == name:
+                # Można ewentualnie zmienić na max(abs(dx), abs(dy)) jeśli chcesz dystans "po szachownicy", ale sumaryczny też jest ok
                 dist = abs(org.get_position().get_x() - from_pos.get_x()) + abs(org.get_position().get_y() - from_pos.get_y())
                 if dist < min_dist:
                     min_dist = dist
@@ -120,10 +122,29 @@ class World:
         else:
             return f"\033[95m{text}\033[0m"
 
+    def save_to_file(self, filename: str):
+        import os
+        # automatyczne dodanie .txt jeśli nie ma rozszerzenia
+        if not filename.endswith('.txt'):
+            filename += '.txt'
+        os.makedirs("save", exist_ok=True)
+        filepath = os.path.join("save", filename)
+        with open(filepath, "w") as file:
+            file.write(f"SIZE {self._width} {self._height}\n")
+            file.write(f"TURN {self._turn}\n")
+            file.write(f"MAX_TURNS {self._max_turns}\n")
+            for org in self._organisms:
+                pos = org.get_position()
+                if isinstance(org, Human):
+                    file.write(f"Human {pos.get_x()} {pos.get_y()} {org.get_age()} {org.get_cooldown()} {org.get_special_turns_left()} {org.is_special_active()}\n")
+                else:
+                    file.write(f"{org.name()} {pos.get_x()} {pos.get_y()} {org.get_age()}\n")
+
     @staticmethod
     def load_from_file(filename: str):
         from organisms import organism_factory
-
+        if not filename.endswith('.txt'):
+            filename += '.txt'
         filepath = os.path.join("save", filename)
         if not os.path.isfile(filepath):
             print(f"File not found: {filepath}")
