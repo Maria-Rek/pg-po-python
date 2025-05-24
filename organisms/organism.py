@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from utils.point import Point  # Zakładamy, że masz klasę Point (Punkt)
+from utils.point import Point
 
 class Organism(ABC):
     def __init__(self, position: Point, strength: int, initiative: int):
@@ -10,22 +10,18 @@ class Organism(ABC):
 
     @abstractmethod
     def action(self, world):
-        """Defines organism behavior during a turn."""
         pass
 
     @abstractmethod
     def collision(self, other, world):
-        """Defines organism behavior during a collision."""
         pass
 
     @abstractmethod
     def name(self) -> str:
-        """Returns the name of the organism."""
         pass
 
     @abstractmethod
     def get_image(self):
-        """Returns the image/symbol for GUI representation."""
         pass
 
     def get_strength(self) -> int:

@@ -2,7 +2,6 @@ from organisms.animal import Animal
 from utils.point import Point
 from PIL import Image
 
-
 class CyberSheep(Animal):
     def __init__(self, position: Point):
         super().__init__(position, strength=11, initiative=4)
@@ -27,7 +26,8 @@ class CyberSheep(Animal):
         self.increase_age()
 
     def collision(self, other, world):
-        if other.name() == "Hogweed":
+        from organisms.plants.hogweed import Hogweed
+        if isinstance(other, Hogweed):
             world.add_log(f"{other.name()} was killed by CyberSheep (immune to Hogweed)")
             world.remove_organism(other)
             self.set_position(other.get_position())
