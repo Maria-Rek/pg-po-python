@@ -16,7 +16,11 @@ class View(tk.Canvas):
         self.cell_size = 50
         self.info_label = info_label
         self.max_turns = max_turns
-        self.image_cache = {}  # {(x, y): PhotoImage}
+        self.image_cache = {}
+
+        # Wyciągnij log_area i przypisz do siebie
+        self.log_area = root.nametowidget('log_area') if 'log_area' in root.children else None
+
         self.bind("<Button-1>", self._on_click)
         self.focus_set()
 
@@ -59,12 +63,12 @@ class View(tk.Canvas):
         point = Point(col, row)
 
         if not self.world.is_inside_board(point):
-            self.world.add_log("Clicked outside the board.")
+            self._add_log("Clicked outside the board.", "info")
             return
 
         if self.world.is_occupied(point):
             org = self.world.find_organism(point)
-            self.world.add_log(f"{org.name()} at {point} | age: {org.get_age()} | str: {org.get_strength()}")
+            self._add_log(f"{org.name()} at {point} | age: {org.get_age()} | str: {org.get_strength()}", "info")
             return
 
         self._popup_add(point)
@@ -85,14 +89,14 @@ class View(tk.Canvas):
     def _add_organism(self, name: str, point: Point):
         if name == "Human":
             if any(isinstance(o, Human) for o in self.world.get_all_organisms()):
-                self.world.add_log("Only one Human allowed!")
+                self._add_log("Only one Human allowed!", "warn")
                 return
 
         klass = get_class_by_name(name)
         if klass:
             new_org = klass(point)
             self.world.add_organism(new_org)
-            self.world.add_log(f"Added {name} at {point}")
+            self._add_log(f"Added {name} at {point}", "info")
             self.image_cache.clear()
             self._draw_all()
             self._update_info()
@@ -107,17 +111,17 @@ class View(tk.Canvas):
         }
         human = next((o for o in self.world.get_all_organisms() if isinstance(o, Human)), None)
         if not human:
-            self.world.add_log("No Human on board!")
+            self._add_log("No Human on board!", "warn")
             return
 
         if event.keysym in key_map:
             action = key_map[event.keysym]
             if action == "special":
                 msg = human.activate_special()
-                self.world.add_log(msg)
+                self._add_log(msg, "special")
             else:
                 human.plan_move(action)
-                self.world.add_log(f"Human plans move {action.name}")
+                self._add_log(f"Human plans move {action.name}", "move")
 
     def execute_turn(self):
         organisms = list(self.world.get_all_organisms())
@@ -140,3 +144,40 @@ class View(tk.Canvas):
         else:
             info += " | Human dead"
         self.info_label.config(text="Welcome to Virtual World!\n" + info)
+
+    def _add_log(self, text, typ="info"):
+        # typ może być info, warn, special, move, dead, spread, default
+        if self.log_area is None:
+            return
+        self.log_area.config(state=tk.NORMAL)
+        tag = self._color_tag_for_log(text, typ)
+        self.log_area.insert(tk.END, text + "\n", tag)
+        self.log_area.see(tk.END)
+        self.log_area.config(state=tk.DISABLED)
+
+    def _color_tag_for_log(self, text, typ="info"):
+        # typy: dead, spread, special, move, info, warn, default
+        lower = text.lower()
+        if "killed" in lower or "died" in lower or "burned" in lower or "eaten" in lower:
+            tag = "dead"
+        elif "spread" in lower:
+            tag = "spread"
+        elif "reproduced" in lower:
+            tag = "move"
+        elif "firestorm" in lower:
+            tag = "special"
+        elif "warn" in typ or "only one human" in lower:
+            tag = "warn"
+        elif "plans move" in lower:
+            tag = "move"
+        else:
+            tag = typ
+
+        if not self.log_area.tag_names():
+            self.log_area.tag_config("dead", foreground="#d11b36", font=("Cascadia Code", 10, "bold"))
+            self.log_area.tag_config("spread", foreground="#1c8538", font=("Cascadia Code", 10, "italic"))
+            self.log_area.tag_config("move", foreground="#c07d0c", font=("Cascadia Code", 10))
+            self.log_area.tag_config("special", foreground="#e156c9", font=("Cascadia Code", 10, "bold"))
+            self.log_area.tag_config("info", foreground="#9844d3", font=("Cascadia Code", 10))
+            self.log_area.tag_config("warn", foreground="#c21c1c", font=("Cascadia Code", 10, "bold"))
+        return tag
