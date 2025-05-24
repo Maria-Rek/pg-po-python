@@ -1,10 +1,8 @@
 import tkinter as tk
 from tkinter import Menu
 from PIL import ImageTk
-from world.global_world import GlobalWorld
 from utils.direction import Direction
 from organisms.animals.human import Human
-from organisms.organism import Organism
 from organisms.organism_factory import get_class_by_name
 from utils.point import Point
 
@@ -18,11 +16,12 @@ class View(tk.Canvas):
         self.cell_size = 50
         self.info_label = info_label
         self.max_turns = max_turns
+        self.image_cache = {}  # {(x, y): PhotoImage}
         self.bind("<Button-1>", self._on_click)
-        self.image_cache = {}  # {Organism: ImageTk.PhotoImage}
         self.focus_set()
+
         self._draw_all()
-        self._update_info()  # ← Dodajemy pierwszy raz od razu
+        self._update_info()
 
     def _draw_all(self):
         self.delete("all")
@@ -32,34 +31,46 @@ class View(tk.Canvas):
                                       (x + 1) * self.cell_size, (y + 1) * self.cell_size,
                                       outline="gray")
 
-        # sort: plants first, animals second
-        organisms = sorted(self.world.get_all_organisms(), key=lambda o: isinstance(o, Organism))
-        for org in organisms:
-            pos = org.get_position()
-            img = org.get_image()
-            if img:
-                if org not in self.image_cache:
-                    self.image_cache[org] = ImageTk.PhotoImage(img.resize((self.cell_size, self.cell_size)))
-                self.create_image(pos.get_x() * self.cell_size,
-                                  pos.get_y() * self.cell_size,
-                                  image=self.image_cache[org],
-                                  anchor=tk.NW)
+        plants = []
+        animals = []
+        for org in self.world.get_all_organisms():
+            module = org.__class__.__module__.lower()
+            if "plants" in module:
+                plants.append(org)
+            else:
+                animals.append(org)
+
+        for group in [plants, animals]:
+            for org in group:
+                pos = org.get_position()
+                img = org.get_image()
+                if img:
+                    resized = img.resize((self.cell_size, self.cell_size))
+                    photo = ImageTk.PhotoImage(resized)
+                    self.image_cache[(pos.get_x(), pos.get_y())] = photo
+                    self.create_image(pos.get_x() * self.cell_size,
+                                      pos.get_y() * self.cell_size,
+                                      image=photo,
+                                      anchor=tk.NW)
 
     def _on_click(self, event):
         col = event.x // self.cell_size
         row = event.y // self.cell_size
         point = Point(col, row)
 
+        if not self.world.is_inside_board(point):
+            self.world.add_log("Clicked outside the board.")
+            return
+
         if self.world.is_occupied(point):
             org = self.world.find_organism(point)
-            GlobalWorld.add_log(f"{org.name()} at {point} | age: {org.get_age()} | str: {org.get_strength()}")
+            self.world.add_log(f"{org.name()} at {point} | age: {org.get_age()} | str: {org.get_strength()}")
             return
 
         self._popup_add(point)
 
     def _popup_add(self, point: Point):
         menu = Menu(self, tearoff=0)
-
         for name in [
             "Sheep", "Wolf", "Fox", "Turtle", "Antelope", "CyberSheep", "Human",
             "Grass", "Dandelion", "Guarana", "DeadlyNightshade", "Hogweed"
@@ -74,14 +85,15 @@ class View(tk.Canvas):
     def _add_organism(self, name: str, point: Point):
         if name == "Human":
             if any(isinstance(o, Human) for o in self.world.get_all_organisms()):
-                GlobalWorld.add_log("Only one Human allowed!")
+                self.world.add_log("Only one Human allowed!")
                 return
 
         klass = get_class_by_name(name)
         if klass:
             new_org = klass(point)
             self.world.add_organism(new_org)
-            GlobalWorld.add_log(f"Added {name} at {point}")
+            self.world.add_log(f"Added {name} at {point}")
+            self.image_cache.clear()
             self._draw_all()
             self._update_info()
 
@@ -95,26 +107,28 @@ class View(tk.Canvas):
         }
         human = next((o for o in self.world.get_all_organisms() if isinstance(o, Human)), None)
         if not human:
-            GlobalWorld.add_log("No Human on board!")
+            self.world.add_log("No Human on board!")
             return
 
         if event.keysym in key_map:
             action = key_map[event.keysym]
             if action == "special":
                 msg = human.activate_special()
-                GlobalWorld.add_log(msg)
+                self.world.add_log(msg)
             else:
                 human.plan_move(action)
+                self.world.add_log(f"Human plans move {action.name}")
 
     def execute_turn(self):
-        organisms = list(self.world.get_all_organisms())  # snapshot
+        organisms = list(self.world.get_all_organisms())
         organisms.sort(key=lambda o: (o.get_initiative(), o.get_age()), reverse=True)
 
         for org in organisms:
-            if org in self.world.get_all_organisms():  # could have died
+            if org in self.world.get_all_organisms():
                 org.action(self.world)
 
         self.world.increase_turn()
+        self.image_cache.clear()
         self._draw_all()
         self._update_info()
 

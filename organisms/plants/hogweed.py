@@ -1,6 +1,5 @@
 from organisms.plant import Plant
 from organisms.animal import Animal
-from organisms.animals.cybersheep import CyberSheep
 from utils.point import Point
 from utils.direction import Direction
 from PIL import Image
@@ -13,6 +12,8 @@ class Hogweed(Plant):
         return "Hogweed"
 
     def action(self, world):
+        from organisms.animals.cybersheep import CyberSheep
+
         for direction in Direction:
             if direction == Direction.NONE:
                 continue
@@ -22,17 +23,20 @@ class Hogweed(Plant):
 
             target = world.get_organism_at(neighbor)
             if target and isinstance(target, Animal) and not isinstance(target, CyberSheep):
-                world.add_log(f"{self.name()} killed {target.name()} next to it")
                 world.remove_organism(target)
+                world.add_log(f"{self.name()} killed {target.name()} next to it")
 
-        super().action(world)  # may still spread
+        super().action(world)
 
     def collision(self, other, world):
+        from organisms.animals.cybersheep import CyberSheep
+
         if isinstance(other, CyberSheep):
             world.add_log(f"{other.name()} ate {self.name()} and survived!")
         else:
             world.add_log(f"{other.name()} ate {self.name()} and died!")
             world.remove_organism(other)
+
         world.remove_organism(self)
 
     def get_image(self):

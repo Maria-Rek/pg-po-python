@@ -1,5 +1,6 @@
 from organisms.animal import Animal
 from utils.point import Point
+from utils.direction import Direction
 from PIL import Image
 import random
 
@@ -11,9 +12,9 @@ class Antelope(Animal):
         return "Antelope"
 
     def action(self, world):
-        directions = world.get_movement_directions()
-        extended_moves = []
+        directions = [d for d in Direction if d != Direction.NONE]
 
+        extended_moves = []
         for d in directions:
             dx, dy = d.value
             new_x = self._position.get_x() + 2 * dx

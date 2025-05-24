@@ -1,5 +1,6 @@
 from abc import ABC
 from organisms.organism import Organism
+from organisms.plant import Plant
 from utils.point import Point
 from utils.direction import Direction
 import random
@@ -9,6 +10,8 @@ class Animal(Organism, ABC):
         super().__init__(position, strength, initiative)
 
     def action(self, world):
+        from organisms.animals.sheep import Sheep
+
         adjacent = world.get_adjacent_positions(self._position)
         if adjacent:
             new_position = random.choice(adjacent)
@@ -16,7 +19,7 @@ class Animal(Organism, ABC):
 
             if target is None:
                 self.set_position(new_position)
-            elif isinstance(target, Plant) and self.__class__.__name__ == "Sheep":
+            elif isinstance(target, Plant) and isinstance(self, Sheep):
                 self.set_position(new_position)
                 target.collision(self, world)
             elif isinstance(target, Plant):

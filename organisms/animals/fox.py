@@ -1,6 +1,7 @@
 from organisms.animal import Animal
 from utils.point import Point
 from PIL import Image
+import random
 
 class Fox(Animal):
     def __init__(self, position: Point):
@@ -17,7 +18,7 @@ class Fox(Animal):
                 safe_moves.append(pos)
 
         if safe_moves:
-            new_position = world.random_choice(safe_moves)
+            new_position = random.choice(safe_moves)  # <== poprawka tu
             target = world.get_organism_at(new_position)
             if target:
                 self.collision(target, world)

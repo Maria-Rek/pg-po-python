@@ -1,8 +1,11 @@
 import tkinter as tk
 from tkinter import simpledialog, messagebox, Label, Entry, Button, Toplevel
 from gui.view import View
-from world.square_world import SquareWorld
-from world.global_world import GlobalWorld
+from world.world import World
+from organisms.organism_factory import get_class_by_name
+from organisms.animals.human import Human
+from utils.point import Point
+import random
 
 class Game:
     def __init__(self):
@@ -73,24 +76,56 @@ class Game:
                 dialog.destroy()
                 return
 
-            self.world = SquareWorld(w, h)
+            self.world = World(w, h)
             self.max_turns = t
             self.world.set_max_turns(t)
-            GlobalWorld.set_world(self.world)
-            self._start_view()
             dialog.destroy()
+            self._choose_add_method()
 
         Button(dialog, text="Start Game", command=confirm).pack(pady=10)
+
+    def _choose_add_method(self):
+        method = messagebox.askyesno("Add organisms", "Add organisms randomly?\n(Yes = random, No = manually)")
+        if method:
+            self._add_random_organisms()
+        self._start_view()
+
+    def _add_random_organisms(self):
+        width = self.world.get_width()
+        height = self.world.get_height()
+        total_fields = width * height
+        count = random.randint(int(total_fields * 0.2), int(total_fields * 0.35))
+
+        all_positions = [Point(x, y) for x in range(width) for y in range(height)]
+        random.shuffle(all_positions)
+
+        # Add Human first
+        pos = all_positions.pop()
+        human = Human(pos)
+        self.world.add_organism(human)
+
+        for _ in range(count - 1):
+            if not all_positions:
+                break
+            pos = all_positions.pop()
+            klass = random.choice([
+                "Sheep", "Wolf", "Fox", "Turtle", "Antelope", "CyberSheep",
+                "Grass", "Dandelion", "Guarana", "DeadlyNightshade", "Hogweed"
+            ])
+            cls = get_class_by_name(klass)
+            if cls:
+                self.world.add_organism(cls(pos))
+
+        self.world.add_log(f"Randomly added {count} organisms (including Human)")
 
     def _load_game(self):
         name = simpledialog.askstring("Load", "Enter save file name:")
         if not name:
             return
-        loaded = SquareWorld.load_from_file(name + ".txt")
+        loaded = World.load_from_file(name + ".txt")
         if loaded:
             self.world = loaded
             self.max_turns = self.world.get_max_turns()
-            GlobalWorld.set_world(self.world)
             self._start_view()
         else:
             messagebox.showerror("Load failed", f"Couldn't load {name}.txt")
@@ -112,7 +147,7 @@ class Game:
         if self.info_label:
             self.info_label.destroy()
 
-        self.info_label = tk.Label(self.root, font=("Cascadia Code", 12), bg="#f0d0f5")
+        self.info_label = tk.Label(self.root, text="Welcome to Virtual World!", font=("Cascadia Code", 12), bg="#f0d0f5")
         self.info_label.pack(pady=10)
 
         self.view = View(self.root, self.world, self.info_label, self.max_turns)
@@ -122,19 +157,37 @@ class Game:
 
     def _next_turn(self):
         if self.world.get_turn() >= self.max_turns:
-            self._log("Game over 💀")
+            self._log("Game over")
+            self._end_game_dialog()
             return
+
         self.view.execute_turn()
+
         if self.world.get_turn() >= self.max_turns:
-            messagebox.showinfo("End", "Max turns reached!")
+            self._log("Max turns reached!")
+            self._end_game_dialog()
+
         self._refresh_logs()
+
+    def _end_game_dialog(self):
+        dialog = Toplevel(self.root)
+        dialog.title("Game Over")
+        dialog.geometry("300x150")
+        dialog.configure(bg="#f0d0f5")
+        dialog.grab_set()
+
+        Label(dialog, text="Game over! What do you want to do?", bg="#f0d0f5", font=("Cascadia Code", 11)).pack(pady=10)
+
+        Button(dialog, text="New Game", width=20, command=lambda: [dialog.destroy(), self._new_game()]).pack(pady=5)
+        Button(dialog, text="Load Game", width=20, command=lambda: [dialog.destroy(), self._load_game()]).pack(pady=5)
+        Button(dialog, text="Exit", width=20, command=self.root.destroy).pack(pady=5)
 
     def _refresh_logs(self):
         self.log_area.delete("1.0", tk.END)
-        logs = GlobalWorld.flush_logs()
+        logs = self.world.flush_logs()
         for line in logs:
             self.log_area.insert(tk.END, line + "\n")
 
     def _log(self, text):
-        GlobalWorld.add_log(text)
+        self.world.add_log(text)
         self._refresh_logs()
