@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox, Label, Entry, Button, Toplevel
+from tkinter import simpledialog, messagebox, Label, Entry, Button, Toplevel, Scrollbar
 from gui.view import View
 from world.world import World
 from organisms.organism_factory import get_class_by_name
@@ -19,21 +19,37 @@ class Game:
         self.world = None
         self.max_turns = 0
         self.info_label = None
+        self.log_area = None
+        self.control_frame = None
 
         self._start_game_dialog()
         self.root.mainloop()
 
-    def _setup_controls(self):
+    def _setup_layout(self):
+        if self.info_label:
+            self.info_label.destroy()
+        self.info_label = tk.Label(self.root, text="Welcome to Virtual World!", font=("Cascadia Code", 12), bg="#f0d0f5")
+        self.info_label.pack(pady=(10, 2))
+
+        if self.log_area:
+            self.log_area.destroy()
+        log_frame = tk.Frame(self.root, bg="#f0d0f5")
+        log_frame.pack()
+        self.log_area = tk.Text(log_frame, height=8, width=60, bg="#fff0fb", wrap="word")
+        self.log_area.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar = Scrollbar(log_frame, command=self.log_area.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.log_area.config(yscrollcommand=scrollbar.set)
+
+        if self.control_frame:
+            self.control_frame.destroy()
         self.control_frame = tk.Frame(self.root, bg="#f0d0f5")
-        self.control_frame.pack()
+        self.control_frame.pack(pady=(2, 8))
 
-        tk.Button(self.control_frame, text="Next Turn", command=self._next_turn).grid(row=0, column=0, padx=5)
-        tk.Button(self.control_frame, text="Save", command=self._save_game).grid(row=0, column=1, padx=5)
-        tk.Button(self.control_frame, text="Load", command=self._load_game).grid(row=0, column=2, padx=5)
-        tk.Button(self.control_frame, text="New Game", command=self._start_game_dialog).grid(row=0, column=3, padx=5)
-
-        self.log_area = tk.Text(self.root, height=8, width=60, bg="#fff0fb")
-        self.log_area.pack()
+        tk.Button(self.control_frame, text="Next Turn", command=self._next_turn, width=11).grid(row=0, column=0, padx=5)
+        tk.Button(self.control_frame, text="Save", command=self._save_game, width=8).grid(row=0, column=1, padx=5)
+        tk.Button(self.control_frame, text="Load", command=self._load_game, width=8).grid(row=0, column=2, padx=5)
+        tk.Button(self.control_frame, text="New Game", command=self._start_game_dialog, width=11).grid(row=0, column=3, padx=5)
 
     def _start_game_dialog(self):
         option = messagebox.askyesno("Start", "Do you want to load a saved game?")
@@ -99,7 +115,6 @@ class Game:
         all_positions = [Point(x, y) for x in range(width) for y in range(height)]
         random.shuffle(all_positions)
 
-        # Add Human first
         pos = all_positions.pop()
         human = Human(pos)
         self.world.add_organism(human)
@@ -140,18 +155,11 @@ class Game:
 
     def _start_view(self):
         self.root.deiconify()
-        self._setup_controls()
-
         if self.view:
             self.view.destroy()
-        if self.info_label:
-            self.info_label.destroy()
-
-        self.info_label = tk.Label(self.root, text="Welcome to Virtual World!", font=("Cascadia Code", 12), bg="#f0d0f5")
-        self.info_label.pack(pady=10)
-
+        self._setup_layout()
         self.view = View(self.root, self.world, self.info_label, self.max_turns)
-        self.view.pack()
+        self.view.pack(pady=(0, 20))
         self.root.bind("<Key>", self.view.on_key)
         self._refresh_logs()
 
@@ -177,16 +185,18 @@ class Game:
         dialog.grab_set()
 
         Label(dialog, text="Game over! What do you want to do?", bg="#f0d0f5", font=("Cascadia Code", 11)).pack(pady=10)
-
         Button(dialog, text="New Game", width=20, command=lambda: [dialog.destroy(), self._new_game()]).pack(pady=5)
         Button(dialog, text="Load Game", width=20, command=lambda: [dialog.destroy(), self._load_game()]).pack(pady=5)
         Button(dialog, text="Exit", width=20, command=self.root.destroy).pack(pady=5)
 
     def _refresh_logs(self):
+        self.log_area.config(state=tk.NORMAL)
         self.log_area.delete("1.0", tk.END)
         logs = self.world.flush_logs()
         for line in logs:
             self.log_area.insert(tk.END, line + "\n")
+        self.log_area.see(tk.END)
+        self.log_area.config(state=tk.DISABLED)
 
     def _log(self, text):
         self.world.add_log(text)
