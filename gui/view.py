@@ -8,6 +8,7 @@ from utils.point import Point
 
 class View(tk.Frame):
     def __init__(self, root, world, info_label, max_turns):
+        # main board view
         super().__init__(root)
         self.cell_size = 50
         self.world = world
@@ -20,7 +21,7 @@ class View(tk.Frame):
         canvas_width = world.get_width() * self.cell_size
         canvas_height = world.get_height() * self.cell_size
 
-        # Canvas + scrollbary
+        # canvas + scrollbars setup
         self.canvas = tk.Canvas(self, width=min(canvas_width, 700), height=min(canvas_height, 700),
                                bg="white", highlightthickness=0, scrollregion=(0,0,canvas_width,canvas_height))
         self.hbar = tk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.canvas.xview)

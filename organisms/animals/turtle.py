@@ -11,6 +11,7 @@ class Turtle(Animal):
         return "Turtle"
 
     def action(self, world):
+        # 75% chance to stay in place
         if random.random() < 0.25:
             super().action(world)
         else:

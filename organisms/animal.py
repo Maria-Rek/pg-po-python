@@ -34,6 +34,7 @@ class Animal(Organism, ABC):
         if other is None:
             return
 
+        # plant handles collision
         if isinstance(other, Plant):
             other.collision(self, world)
             return

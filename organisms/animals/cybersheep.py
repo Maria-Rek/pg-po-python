@@ -27,6 +27,7 @@ class CyberSheep(Animal):
 
     def collision(self, other, world):
         from organisms.plants.hogweed import Hogweed
+        # immune to Hogweed
         if isinstance(other, Hogweed):
             world.add_log(f"{other.name()} was killed by CyberSheep (immune to Hogweed)")
             world.remove_organism(other)

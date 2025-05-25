@@ -1,0 +1,18 @@
+SIZE 10 10
+TURN 0
+MAX_TURNS 20
+Human 1 1 0 0 0 False
+Grass 2 1 0
+Dandelion 2 2 0
+Wolf 1 5 0
+CyberSheep 1 7 0
+Hogweed 3 8 0
+Sheep 7 2 0
+Grass 8 2 0
+Dandelion 8 3 0
+Grass 7 3 0
+Dandelion 6 3 0
+Grass 6 2 0
+Grass 6 1 0
+Dandelion 7 1 0
+Dandelion 8 1 0

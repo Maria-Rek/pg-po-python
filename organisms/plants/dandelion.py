@@ -11,6 +11,7 @@ class Dandelion(Plant):
         return "Dandelion"
 
     def action(self, world):
+        # up to 3 chances to spread per turn
         for _ in range(3):
             if random.randint(0, 9) == 0:
                 free = world.get_free_adjacent_positions(self._position)

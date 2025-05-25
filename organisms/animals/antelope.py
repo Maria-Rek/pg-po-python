@@ -39,6 +39,7 @@ class Antelope(Animal):
         if other is None:
             return
 
+        # 50% chance to escape collision
         if random.random() < 0.5:
             free = world.get_free_adjacent_positions(self._position)
             if free:

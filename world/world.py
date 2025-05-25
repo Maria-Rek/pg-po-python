@@ -68,7 +68,7 @@ class World:
         return 0 <= point.get_x() < self._width and 0 <= point.get_y() < self._height
 
     def get_adjacent_positions(self, center: Point) -> list[Point]:
-        # OŚMIOSĄSIEDZTWO – wszystkie kierunki z Direction poza NONE!
+        # all 8-neighbouring positions
         result = []
         for d in Direction:
             if d == Direction.NONE:
@@ -94,7 +94,6 @@ class World:
         closest = None
         for org in self._organisms:
             if org.name() == name:
-                # Można ewentualnie zmienić na max(abs(dx), abs(dy)) jeśli chcesz dystans "po szachownicy", ale sumaryczny też jest ok
                 dist = abs(org.get_position().get_x() - from_pos.get_x()) + abs(org.get_position().get_y() - from_pos.get_y())
                 if dist < min_dist:
                     min_dist = dist
@@ -124,7 +123,6 @@ class World:
 
     def save_to_file(self, filename: str):
         import os
-        # automatyczne dodanie .txt jeśli nie ma rozszerzenia
         if not filename.endswith('.txt'):
             filename += '.txt'
         os.makedirs("save", exist_ok=True)
