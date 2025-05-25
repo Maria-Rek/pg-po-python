@@ -8,6 +8,7 @@ class Plant(Organism, ABC):
         super().__init__(position, strength, 0)
 
     def action(self, world):
+        # may spread to adjacent tile (10% chance)
         if random.randint(0, 9) == 0:
             free = world.get_free_adjacent_positions(self._position)
             if free:

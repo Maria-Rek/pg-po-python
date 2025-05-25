@@ -44,6 +44,7 @@ class Human(Animal):
             world.add_log("Human activated Firestorm 🔥 (5 turns)")
 
         if self._special_active:
+            # burns all neighbours
             for direction in Direction:
                 if direction == Direction.NONE:
                     continue

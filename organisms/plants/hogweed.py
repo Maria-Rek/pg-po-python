@@ -14,6 +14,7 @@ class Hogweed(Plant):
     def action(self, world):
         from organisms.animals.cybersheep import CyberSheep
 
+        # kills all animals in neighbourhood
         for direction in Direction:
             if direction == Direction.NONE:
                 continue

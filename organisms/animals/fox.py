@@ -11,6 +11,7 @@ class Fox(Animal):
         return "Fox"
 
     def action(self, world):
+        # avoids stronger organisms
         safe_moves = []
         for pos in world.get_adjacent_positions(self._position):
             target = world.get_organism_at(pos)
@@ -18,7 +19,7 @@ class Fox(Animal):
                 safe_moves.append(pos)
 
         if safe_moves:
-            new_position = random.choice(safe_moves)  # <== poprawka tu
+            new_position = random.choice(safe_moves)
             target = world.get_organism_at(new_position)
             if target:
                 self.collision(target, world)
