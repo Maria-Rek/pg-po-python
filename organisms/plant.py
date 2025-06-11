@@ -22,7 +22,7 @@ class Plant(Organism, ABC):
             return
 
         if self.name() in ["Grass", "Dandelion"]:
-            if other.__class__.__name__ == "Sheep":
+            if other.__class__.__name__ in ["Sheep", "CyberSheep"]:
                 world.add_log(f"{self.name()} was eaten by Sheep")
                 world.remove_organism(self)
             else:
