@@ -47,6 +47,19 @@ Game state can be saved and loaded from a text file.
 
 ---
 
+## How to Run
+
+Requirements: Python 3 with Tkinter (included in the standard Windows/macOS installers; on Debian/Ubuntu install `python3-tk`).
+
+```bash
+git clone https://github.com/Maria-Rek/pg-po-python.git
+cd pg-po-python
+pip install -r requirements.txt
+python main.py
+```
+
+---
+
 ## Project Structure
 
 - `gui/` – main window and board rendering
